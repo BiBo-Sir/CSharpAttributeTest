@@ -1,0 +1,88 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+
+namespace AttributeTest2
+{
+    public class DbKey : Attribute
+    {
+        public string Description { get; set; }
+        public DbKey() { }
+
+        public DbKey(string description)
+        {
+            this.Description = description;
+        }
+    }
+
+    public class User
+    {
+        [DbKey]
+        public string Id { get; set; }
+        public string Name { get; set; }
+    }
+
+    public class UserRole
+    {
+        [DbKey("用户Id")]
+        public string UserId { get; set; }  
+
+        [DbKey("角色Id")]
+        public string RoleId { get; set; }
+    }
+
+    class Program
+    {
+            /// <summary>
+            /// 获取数据库主键字段
+            /// </summary>
+            /// <typeparam name="T"></typeparam>
+            /// <returns></returns>
+            private static IEnumerable<PropertyInfo> GetDbKeyFields<T>()
+            {
+                // 获取当前类中的公共字段
+                var fields = typeof(T).GetProperties();
+
+                // 查找有DbKey特性的字段
+                var keyFields = fields.Where(field => (DbKey)Attribute.GetCustomAttribute(field, typeof(DbKey)) != null);
+
+                return keyFields;
+            }
+
+            private static string GetDescription(PropertyInfo field)
+            {
+                string result = string.Empty;
+                var dbKey = (DbKey)Attribute.GetCustomAttribute(field, typeof(DbKey));
+                if (dbKey != null) result = dbKey.Description;
+                return result;
+            }
+
+            static void Main(string[] args)
+            {
+                try
+                {
+                    var userKeyFields = GetDbKeyFields<User>();
+                    Console.WriteLine("User表的主键为:" + string.Join(",", userKeyFields.Select(field => field.Name)));
+
+                    var userRoleKeyFields = GetDbKeyFields<UserRole>();
+                    Console.WriteLine("UserRole表的主键为:" + string.Join(",", userRoleKeyFields.Select(field => field.Name)));
+
+                    foreach (PropertyInfo field in userRoleKeyFields)
+                    {
+                        string description = GetDescription(field);
+                        Console.WriteLine(string.Format("{0}字段的描述信息为:{1}", field.Name, description));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+                finally
+                {
+                    Console.ReadLine();
+                }
+            }
+        }
+    
+}
